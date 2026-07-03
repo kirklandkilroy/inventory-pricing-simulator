@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live Inventory Dashboard</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #f7f7f7; }
+    table { border-collapse: collapse; width: 100%; max-width: 700px; background: white; }
+    th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #333; color: white; }
+    tr.low { background: #ffe5e5; }
+    .flash { animation: flash 0.6s ease; }
+    @keyframes flash {
+      from { background-color: #fff3b0; }
+      to { background-color: inherit; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Live Inventory</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Quantity</th>
+        <th>Price</th>
+        <th>Last Sale</th>
+      </tr>
+    </thead>
+    <tbody id="inventory-table">
+      <!-- rows get filled in by JavaScript -->
+    </tbody>
+  </table>
+
+  <script>
+    // Step 1: load initial inventory so every SKU has a row right away
+    async function loadInitialInventory() {
+      const response = await fetch("http://localhost:8000/inventory");
+      const data = await response.json();
+
+      const tableBody = document.getElementById("inventory-table");
+      for (const sku in data) {
+        const row = document.createElement("tr");
+        row.id = `row-${sku}`;
+        row.innerHTML = `
+          <td>${sku}</td>
+          <td class="qty">${data[sku].quantity}</td>
+          <td class="price">$${data[sku].price}</td>
+          <td class="store">—</td>
+        `;
+        tableBody.appendChild(row);
+      }
+    }
+
+    loadInitialInventory();
+
+    // Step 2: connect WebSocket to update rows live
+    const socket = new WebSocket("ws://localhost:8000/ws");
+
+    socket.onopen = () => console.log("Connected to server");
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      const row = document.getElementById(`row-${data.sku}`);
+      if (!row) return; // safety check, shouldn't happen
+
+      row.querySelector(".qty").textContent = data.quantity;
+      row.querySelector(".price").textContent = `$${data.price}`;
+      row.querySelector(".store").textContent = data.store;
+
+      row.classList.toggle("low", data.low_stock);
+
+      // brief highlight flash so you can see which row just changed
+      row.classList.remove("flash");
+      void row.offsetWidth; // forces the browser to notice the class was removed
+      row.classList.add("flash");
+    };
+  </script>
+</body>
+</html>
