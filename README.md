@@ -1,4 +1,4 @@
-# Omni-Channel Real-Time Inventory & Pricing Engine
+# Omni-Channel Real-Time Inventory & Pricing Engine(With Claude help)
 
 A simulated real-time inventory sync and dynamic pricing system for retail, built to explore how multiple sales channels (in-store POS, e-commerce, warehouse) can stay in sync without directly depending on one another.
 
